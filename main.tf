@@ -99,7 +99,7 @@ resource "google_container_node_pool" "default" {
   cluster    = "${google_container_cluster.default.name}"
   name       = "${local.name}"
   zone       = "${var.zone}"
-  node_count = "${var.num_kafka_brokers}"
+  node_count = "${max(var.zookeeper_replicas, var.kafka_replicas)}"
 
   node_config {
     machine_type = "n1-standard-4"
@@ -126,8 +126,8 @@ resource "google_container_node_pool" "default" {
 }
 
 resource "google_compute_address" "default" {
-  count = "${var.num_kafka_brokers}"
-  name = "kafka-${count.index}"
+  count = "${var.kafka_replicas}"
+  name  = "kafka-${count.index}"
 }
 
 /* = Helm Charts == */
@@ -171,12 +171,19 @@ provider "helm" {
 resource "helm_release" "default" {
   name  = "kafka"
   chart = "${path.module}/chart"
+
   values = [<<EOF
-replicas: ${var.num_kafka_brokers}
-addresses: ${jsonencode(sort(google_compute_address.default.*.address))}
-domain: example.com
+domain: ${var.domain}
+zookeeper:
+  replicas: ${var.zookeeper_replicas}
+  disk:
+    size: ${var.zookeeper_disk_size}
+kafka:
+  replicas: ${var.kafka_replicas}
+  disk:
+    size: ${var.kafka_disk_size}
 EOF
   ]
 
-  depends_on = ["null_resource.apply"]
+  depends_on = ["google_container_node_pool.default", "null_resource.apply"]
 }

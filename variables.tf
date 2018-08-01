@@ -12,7 +12,26 @@ variable "zone" {
   default = "europe-west1-b"
 }
 
-variable "num_kafka_brokers" {
+variable "domain" {
+  type = "string"
+}
+
+variable "zookeeper_replicas" {
   type    = "string"
   default = "3"
+}
+
+variable "zookeeper_disk_size" {
+  type    = "string"
+  default = "10G"
+}
+
+variable "kafka_replicas" {
+  type    = "string"
+  default = "3"
+}
+
+variable "kafka_disk_size" {
+  type    = "string"
+  default = "100G"
 }

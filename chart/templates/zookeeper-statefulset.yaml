@@ -7,7 +7,7 @@ metadata:
     service: cp-zookeeper
 spec:
   serviceName: cp-zookeeper
-  replicas: 3
+  replicas: {{ .Values.zookeeper.replicas }}
   podManagementPolicy: Parallel
   updateStrategy:
     type: RollingUpdate
@@ -31,7 +31,7 @@ spec:
       containers:
       - name: cp-zookeeper
         imagePullPolicy: IfNotPresent
-        image: confluentinc/cp-zookeeper:4.1.1
+        image: confluentinc/cp-zookeeper:5.0.0
         command:
           - "bash"
           - "-c"
@@ -69,4 +69,4 @@ spec:
       storageClassName: ssd
       resources:
         requests:
-          storage: 10Gi
+          storage: {{ .Values.zookeeper.disk.size }}

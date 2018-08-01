@@ -9,7 +9,7 @@ spec:
   updateStrategy:
     type: RollingUpdate
   serviceName: cp-kafka
-  replicas: {{ .Values.replicas }}
+  replicas: {{ .Values.kafka.replicas }}
   template:
     metadata:
       labels:
@@ -41,7 +41,7 @@ spec:
       containers:
       - name: cp-kafka
         imagePullPolicy: IfNotPresent
-        image: confluentinc/cp-kafka:4.1.1
+        image: confluentinc/cp-kafka:5.0.0
         resources:
           requests:
             memory: "8Gi"
@@ -85,4 +85,4 @@ spec:
       storageClassName: ssd
       resources:
         requests:
-          storage: 100Gi
+          storage: {{ .Values.kafka.disk.size }}
