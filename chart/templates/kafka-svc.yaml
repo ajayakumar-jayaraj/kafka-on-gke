@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cp-kafka
+  labels:
+    tier: middleware
+    service: cp-kafka
+spec:
+  ports:
+  - port: 19092
+    name: internal
+  - port: 9092
+    name: external
+  clusterIP: None
+  selector:
+    tier: middleware
+    service: cp-kafka
+{{- range $index, $address := .Values.addresses }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cp-kafka-ext-{{ $index }}
+  labels:
+    tier: middleware
+    service: cp-kafka-{{ $index }}
+spec:
+  externalTrafficPolicy: Local
+  type: LoadBalancer
+  loadBalancerIP: {{ $address }}
+  ports:
+  - port: 9092
+    name: kafka
+  selector:
+    tier: middleware
+    service: cp-kafka
+    statefulset.kubernetes.io/pod-name: cp-kafka-{{ $index }}
+{{- end }}
