@@ -182,6 +182,7 @@ resource "helm_release" "default" {
 
   values = [<<EOF
 domain: ${var.domain}
+addresses: ${jsonencode(sort(google_compute_address.default.*.address))}
 zookeeper:
   replicas: ${local.zookeeper_replicas}
   disk:
