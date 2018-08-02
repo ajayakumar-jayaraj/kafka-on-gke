@@ -14,8 +14,9 @@ locals {
 
   name = "kafka"
 
-  zookeeper_replicas = "${max(var.zookeeper_replicas, 3)}"
-  kafka_replicas     = "${max(var.kafka_replicas, 3)}"
+  kafka_replicas             = "${max(var.kafka_replicas, 3)}"
+  zookeeper_replicas         = "${min(local.kafka_replicas, max(var.zookeeper_replicas, 1))}"
+  number_of_nodes_per_region = "${local.kafka_replicas / 3 + (local.kafka_replicas % 3 == 0 ? 0 : 1)}"
 }
 
 /* = VPC setup ================================ */
@@ -47,13 +48,17 @@ resource "google_project_iam_member" "default" {
 
 /* = =*/
 
+data "google_compute_zones" "default" {
+  region = "${var.region}"
+}
+
 data "google_container_engine_versions" "default" {
-  zone = "${var.zone}"
+  zone = "${data.google_compute_zones.default.names.0}"
 }
 
 resource "google_container_cluster" "default" {
-  name = "${local.name}"
-  zone = "${var.zone}"
+  name   = "${local.name}"
+  region = "${var.region}"
 
   network    = "${google_compute_network.default.name}"
   subnetwork = "${google_compute_subnetwork.default.name}"
@@ -101,8 +106,8 @@ resource "google_container_cluster" "default" {
 resource "google_container_node_pool" "default" {
   cluster    = "${google_container_cluster.default.name}"
   name       = "${local.name}"
-  zone       = "${var.zone}"
-  node_count = "${max(local.zookeeper_replicas, local.kafka_replicas)}"
+  region     = "${var.region}"
+  node_count = "${local.number_of_nodes_per_region}"
 
   node_config {
     machine_type = "n1-standard-4"
