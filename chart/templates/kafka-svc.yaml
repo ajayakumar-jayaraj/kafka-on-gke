@@ -20,7 +20,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cp-kafka-ext-{{ $index }}
+  name: cp-kafka-{{ $index }}
   labels:
     tier: middleware
     service: cp-kafka-{{ $index }}
