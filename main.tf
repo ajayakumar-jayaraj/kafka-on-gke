@@ -13,6 +13,9 @@ locals {
   ]
 
   name = "kafka"
+
+  zookeeper_replicas = "${max(var.zookeeper_replicas, 3)}"
+  kafka_replicas     = "${max(var.kafka_replicas, 3)}"
 }
 
 /* = VPC setup ================================ */
@@ -99,7 +102,7 @@ resource "google_container_node_pool" "default" {
   cluster    = "${google_container_cluster.default.name}"
   name       = "${local.name}"
   zone       = "${var.zone}"
-  node_count = "${max(var.zookeeper_replicas, var.kafka_replicas)}"
+  node_count = "${max(local.zookeeper_replicas, local.kafka_replicas)}"
 
   node_config {
     machine_type = "n1-standard-4"
@@ -126,7 +129,7 @@ resource "google_container_node_pool" "default" {
 }
 
 resource "google_compute_address" "default" {
-  count = "${var.kafka_replicas}"
+  count = "${local.kafka_replicas}"
   name  = "kafka-${count.index}"
 }
 
@@ -175,11 +178,11 @@ resource "helm_release" "default" {
   values = [<<EOF
 domain: ${var.domain}
 zookeeper:
-  replicas: ${var.zookeeper_replicas}
+  replicas: ${local.zookeeper_replicas}
   disk:
     size: ${var.zookeeper_disk_size}
 kafka:
-  replicas: ${var.kafka_replicas}
+  replicas: ${local.kafka_replicas}
   disk:
     size: ${var.kafka_disk_size}
 EOF
