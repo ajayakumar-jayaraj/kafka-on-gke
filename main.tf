@@ -65,49 +65,7 @@ resource "google_container_cluster" "default" {
 
   min_master_version = "${data.google_container_engine_versions.default.latest_master_version}"
 
-  network_policy {
-    enabled  = true
-    provider = "CALICO"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      "node_pool",
-    ]
-  }
-
-  node_pool {
-    name = "default-pool"
-  }
-
-  remove_default_node_pool = true
-
-  addons_config {
-    http_load_balancing {
-      disabled = true
-    }
-
-    kubernetes_dashboard {
-      disabled = true
-    }
-
-    network_policy_config {
-      disabled = false
-    }
-  }
-
-  maintenance_policy {
-    daily_maintenance_window {
-      start_time = "01:00"
-    }
-  }
-}
-
-resource "google_container_node_pool" "default" {
-  cluster    = "${google_container_cluster.default.name}"
-  name       = "${local.name}"
-  region     = "${var.region}"
-  node_count = "${local.number_of_nodes_per_region}"
+  initial_node_count = "${local.number_of_nodes_per_region}"
 
   node_config {
     machine_type = "n1-standard-4"
@@ -121,15 +79,6 @@ resource "google_container_node_pool" "default" {
     ]
 
     service_account = "${google_service_account.default.email}"
-
-    labels {
-      dedicated = "kafka"
-    }
-  }
-
-  management {
-    auto_repair  = true
-    auto_upgrade = true
   }
 }
 
@@ -160,7 +109,7 @@ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admi
 EOF
   }
 
-  depends_on = ["google_container_cluster.default", "google_container_node_pool.default"]
+  depends_on = ["google_container_cluster.default"]
 }
 
 provider "helm" {
@@ -183,6 +132,7 @@ resource "helm_release" "default" {
   values = [<<EOF
 domain: ${var.domain}
 addresses: ${jsonencode(sort(google_compute_address.default.*.address))}
+sourceRanges: ${jsonencode(sort(var.source_ranges))}
 zookeeper:
   replicas: ${local.zookeeper_replicas}
   disk:
@@ -194,5 +144,5 @@ kafka:
 EOF
   ]
 
-  depends_on = ["google_container_node_pool.default", "null_resource.apply"]
+  depends_on = ["google_container_cluster.default", "null_resource.apply"]
 }

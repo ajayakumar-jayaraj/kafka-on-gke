@@ -30,3 +30,8 @@ variable "kafka_disk_size" {
   type    = "string"
   default = "100G"
 }
+
+variable "source_ranges" {
+  type    = "list"
+  default = ["0.0.0.0/0"]
+}
