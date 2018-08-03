@@ -1,6 +1,6 @@
 # Kafka-as-a-Service on GKE with Terraform
 
-This tutorial walks through provisioning an [Apache Kafka][vault] cluster on [Google Kubernetes Engine][gke] using [HashiCorp Terraform][terraform] as the provisioning tool.
+This tutorial walks through provisioning an [Apache Kafka](https://kafka.apache.org/) cluster on [Google Kubernetes Engine][gke] using [HashiCorp Terraform][terraform] as the provisioning tool.
 
 ## Feature Highlights
 
