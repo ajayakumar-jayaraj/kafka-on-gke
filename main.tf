@@ -1,9 +1,10 @@
-provider "google" {
-  project = "${var.project}"
-  region  = "${var.region}"
-}
-
 locals {
+  project_services = [
+    "cloudresourcemanager.googleapis.com",
+    "container.googleapis.com",
+    "iam.googleapis.com",
+  ]
+
   service_account_iam_roles = [
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
@@ -19,51 +20,89 @@ locals {
   number_of_nodes_per_region = "${local.kafka_replicas / 3 + (local.kafka_replicas % 3 == 0 ? 0 : 1)}"
 }
 
+resource "random_id" "random" {
+  prefix      = "kafka-"
+  byte_length = "8"
+}
+
+# Create the project
+resource "google_project" "default" {
+  name                = "${random_id.random.hex}"
+  project_id          = "${random_id.random.hex}"
+  org_id              = "${var.org_id}"
+  folder_id           = "${var.folder_id}"
+  billing_account     = "${var.billing_account}"
+  auto_create_network = false
+}
+
+# Enable required services on the project
+resource "google_project_service" "service" {
+  count              = "${length(local.project_services)}"
+  project            = "${google_project.default.id}"
+  service            = "${element(local.project_services, count.index)}"
+  disable_on_destroy = false
+}
+
 /* = VPC ====================================================== */
 
 resource "google_compute_network" "default" {
+  project                 = "${google_project.default.id}"
   name                    = "${local.name}"
   auto_create_subnetworks = "false"
+
+  depends_on = ["google_project_service.service"]
 }
 
 resource "google_compute_subnetwork" "default" {
+  project       = "${google_project.default.id}"
   name          = "${local.name}"
   network       = "${google_compute_network.default.self_link}"
   region        = "${var.region}"
   ip_cidr_range = "10.0.4.0/22"
+
+  depends_on = ["google_project_service.service"]
+}
+
+resource "google_compute_address" "default" {
+  project = "${google_project.default.id}"
+  region  = "${var.region}"
+  count   = "${local.kafka_replicas}"
+  name    = "kafka-${count.index}"
+
+  depends_on = ["google_project_service.service"]
 }
 
 /* = Service Accounts ========================================= */
 
 resource "google_service_account" "default" {
+  project      = "${google_project.default.id}"
   account_id   = "${local.name}-gke"
   display_name = "${local.name} gke service account"
 }
 
 resource "google_project_iam_member" "default" {
-  count  = "${length(local.service_account_iam_roles)}"
-  role   = "${element(local.service_account_iam_roles, count.index)}"
-  member = "serviceAccount:${google_service_account.default.email}"
-}
-
-resource "google_compute_address" "default" {
-  count = "${local.kafka_replicas}"
-  name  = "kafka-${count.index}"
+  project = "${google_project.default.id}"
+  count   = "${length(local.service_account_iam_roles)}"
+  role    = "${element(local.service_account_iam_roles, count.index)}"
+  member  = "serviceAccount:${google_service_account.default.email}"
 }
 
 /* = Regional Kubernetes Cluster =*/
 
 data "google_compute_zones" "default" {
-  region = "${var.region}"
+  project = "${google_project.default.id}"
+  region  = "${var.region}"
 }
 
 data "google_container_engine_versions" "default" {
-  zone = "${data.google_compute_zones.default.names.0}"
+  project = "${google_project.default.id}"
+  zone    = "${data.google_compute_zones.default.names.0}"
 }
 
 resource "google_container_cluster" "default" {
-  name   = "${local.name}"
-  region = "${var.region}"
+  project = "${google_project.default.id}"
+  name    = "${local.name}"
+  region  = "${var.region}"
 
   network    = "${google_compute_network.default.name}"
   subnetwork = "${google_compute_subnetwork.default.name}"
@@ -81,9 +120,12 @@ resource "google_container_cluster" "default" {
   }
 
   remove_default_node_pool = true
+
+  depends_on = ["google_project_service.service"]
 }
 
 resource "google_container_node_pool" "default" {
+  project    = "${google_project.default.id}"
   cluster    = "${google_container_cluster.default.name}"
   name       = "broker"
   region     = "${var.region}"
@@ -102,6 +144,8 @@ resource "google_container_node_pool" "default" {
 
     service_account = "${google_service_account.default.email}"
   }
+
+  depends_on = ["google_project_service.service"]
 }
 
 /* = Helm Charts == */
@@ -126,7 +170,7 @@ kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admi
 EOF
   }
 
-  depends_on = ["google_container_cluster.default"]
+  depends_on = ["google_container_cluster.default", "google_container_node_pool.default"]
 }
 
 provider "helm" {
@@ -161,5 +205,5 @@ kafka:
 EOF
   ]
 
-  depends_on = ["google_container_cluster.default", "null_resource.apply"]
+  depends_on = ["google_container_node_pool.default", "null_resource.apply"]
 }
