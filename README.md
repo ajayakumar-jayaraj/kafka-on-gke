@@ -81,10 +81,8 @@ Note that this can sometimes fail. Re-run it and it should succeed. If things ge
 
 Things needed to make the Kafka cluster accessible from outside the Kubernetes cluster:
 
-1. Each broker has multiple listeners configured, eg `PLAINTEXT_INTERNAL://cp-kafka-0.cp-kafka:19092,PLAINTEXT_EXTERNAL://kafka-0.example.com:9092`
-
-    - 1 for internal communication
-    - 1 for the outside world
+1. Each broker has multiple listeners configured, eg `PLAINTEXT_INTERNAL://cp-kafka-0.cp-kafka:19092,PLAINTEXT_EXTERNAL://kafka-0.example.com:9092`,
+    one for internal communication and one for the outside world
     
 1. Each broker pod is exposed using a Kubernetes Service of type LoadBalancer
     
