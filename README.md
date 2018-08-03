@@ -23,7 +23,7 @@ This tutorial walks through provisioning an [Apache Kafka][vault] cluster on [Go
     ```
     $ cd terraform/
     $ terraform init
-    $ terraform apply -var 'domain=example.com'
+    $ terraform apply -var 'domain=example.com' -var 'org_id=<your gcp org id' -var 'billing_account=<your gcp billing account id>'
     ```
 
     This operation will take some time as it:
