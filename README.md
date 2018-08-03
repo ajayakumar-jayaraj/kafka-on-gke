@@ -77,6 +77,22 @@ $ terraform destroy
 
 Note that this can sometimes fail. Re-run it and it should succeed. If things get into a bad state, you can always just delete the project.
 
+## Exposing Kafka service externally
+
+Things needed to make the Kafka cluster accessible from outside the Kubernetes cluster:
+
+1. Each broker has multiple listeners configured, eg `PLAINTEXT_INTERNAL://cp-kafka-0.cp-kafka:19092,PLAINTEXT_EXTERNAL://kafka-0.example.com:9092`
+
+    - 1 for internal communication
+    - 1 for the outside world
+    
+1. Each broker pod is exposed using a Kubernetes Service of type LoadBalancer
+    
+    When creating a StatefulSet, each Pod managed by this StatefulSet will have a label `statefulset.kubernetes.io/pod-name` with the pod name as value.
+    This label can be used to create a Service for each Pod that will route traffic to a single pod of the StatefulSet.
+    
+1. DNS entries for each broker instance, mapping the external listener name to the IP addresses created by the LoadBalancer Services
+
 ## Security
 
 At this moment no security considerations are taken into account at all. (so don't use this setup for a production environment ;-) )
