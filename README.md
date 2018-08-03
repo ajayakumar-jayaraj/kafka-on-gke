@@ -84,7 +84,7 @@ At this moment no security considerations are taken into account at all. (so don
 By default this tutorial will create a Kafka cluster that is publicly accesible for everyone, but you can specify the IP ranges that are allowed to access the Kafka Cluster. 
 This variable takes a list of IP CIDR ranges, which Kubernetes will use to configure firewall exceptions.
 
-Further security measures, such as encryption, authentication and authorization, are left as exercise an further improvement. (pull requests are always welcome)
+Further security measures, such as encryption, authentication and authorization, are left as exercise and further improvement. (pull requests are always welcome)
 
 [gcs]: https://cloud.google.com/storage
 [gke]: https://cloud.google.com/kubernetes-engine
